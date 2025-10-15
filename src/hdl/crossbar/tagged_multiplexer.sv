@@ -26,7 +26,7 @@
  */
 
 module TaggedMultiplexer #(
-    parameter type tuple_t,
+    parameter type data_t,
     parameter ID,
     parameter NUM_INPUTS,
     parameter TAG_WIDTH,
@@ -36,8 +36,8 @@ module TaggedMultiplexer #(
     input logic clk,
     input logic rst_n,
 
-    tagged_i.s in[NUM_INPUTS], // #(tuple_t, TAG_WIDTH)
-    data_i.m  out             // #(tuple_t)
+    tagged_i.s in[NUM_INPUTS], // #(data_t, TAG_WIDTH)
+    data_i.m  out              // #(data_t)
 );
 
 // Note: WAIT_ALL breaks the stream semantics because it may produce dummy last elements in the output
@@ -46,12 +46,12 @@ localparam FORWARD = 1;
 
 logic[1:0] suffix_sum[NUM_INPUTS + 1];
 logic[NUM_INPUTS - 1:0] tag_matches;
-tuple_t in_data[NUM_INPUTS];
+data_t in_data[NUM_INPUTS];
 logic[NUM_INPUTS - 1:0] in_keep, in_last, in_valid, in_ready;
 
 logic[NUM_INPUTS - 1:0] last_seen, n_last_seen;
 
-data_i #(tuple_t) skid(), n_skid();
+data_i #(data_t) skid(), n_skid();
 
 always_ff @(posedge clk) begin
     if (!rst_n) begin
@@ -140,7 +140,7 @@ always_comb begin
 end
 
 TupleSkidBuffer #(
-    .tuple_t(tuple_t)
+    .data_t(data_t)
 ) inst_skid_buffer (
     .clk(clk),
     .rst_n(rst_n),

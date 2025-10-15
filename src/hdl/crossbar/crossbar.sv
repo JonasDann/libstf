@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module Crossbar #(
-    parameter type tuple_t,
+    parameter type data_t,
     parameter NUM_INPUTS,
     parameter NUM_OUTPUTS,
     parameter LAST_HANDLING = 1, // Handling of the last signal by the Multiplexer
@@ -30,12 +30,12 @@ module Crossbar #(
     input logic clk,
     input logic rst_n,
 
-    tagged_i.s in[NUM_INPUTS],  // #(tuple_t, TAG_WIDTH)
-    data_i.m  out[NUM_OUTPUTS] // #(tuple_t)
+    tagged_i.s in[NUM_INPUTS], // #(data_t, TAG_WIDTH)
+    data_i.m  out[NUM_OUTPUTS] // #(data_t)
 );
 
-tagged_i #(tuple_t, TAG_WIDTH) skid_pipe[NUM_INPUTS][NUM_SKID_BUFFERS + 1]();
-tagged_i #(tuple_t, TAG_WIDTH) mux_in[NUM_OUTPUTS][NUM_INPUTS]();
+tagged_i #(data_t, TAG_WIDTH) skid_pipe[NUM_INPUTS][NUM_SKID_BUFFERS + 1]();
+tagged_i #(data_t, TAG_WIDTH) mux_in[NUM_OUTPUTS][NUM_INPUTS]();
 
 logic[NUM_INPUTS-1:0][NUM_OUTPUTS-1:0] mux_ready_transposed;
 
@@ -55,7 +55,7 @@ endgenerate
 for (genvar I = 0; I < NUM_INPUTS; I++) begin
     for (genvar J = 0; J < NUM_SKID_BUFFERS; J++) begin
         TaggedSkidBuffer #(
-            .tuple_t(tuple_t),
+            .data_t(data_t),
             .TAG_WIDTH(TAG_WIDTH)
         ) inst_skid_buffer (
             .clk(clk),
@@ -84,7 +84,7 @@ end
 
 for(genvar O = 0; O < NUM_OUTPUTS; O++) begin
     TaggedMultiplexer #(
-        .tuple_t(tuple_t),
+        .data_t(data_t),
         .ID(O),
         .NUM_INPUTS(NUM_INPUTS),
         .TAG_WIDTH(TAG_WIDTH),

@@ -80,8 +80,8 @@ module AXIToNDataTyped #(
 
     input type_width_t type_width,
 
-    AXI4S.s in,    // #(AXI_WIDTH)
-    ndata_i.m out // #(tuple_t, NUM_TUPLES)
+    AXI4S.s in,   // #(AXI_WIDTH)
+    ndata_i.m out // #(data_t, NUM_TUPLES)
 );
 
 localparam DATA_WIDTH = 64;
