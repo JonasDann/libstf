@@ -2,7 +2,7 @@
 
 import lynxTypes::*;
 
-`include "tuple_macros.svh"
+`include "libstf_macros.svh"
 
 module BarrelShifter #(
     parameter type data_t,

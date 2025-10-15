@@ -2,9 +2,9 @@
 
 import lynxTypes::*;
 
-`include "tuple_macros.svh"
+`include "libstf_macros.svh"
 
-module TupleNormalizer #(
+module DataNormalizer #(
     parameter type data_t,
     parameter NUM_ELEMENTS,
     parameter ENABLE_COMPACTOR = 0,

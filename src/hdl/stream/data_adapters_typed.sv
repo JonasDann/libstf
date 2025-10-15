@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-import libstf_common::*;
+import libstf::*;
 
 /**
  * Converts a NUM_ELEMENTS ndata stream containing 32bit or 64bit elements to a 64 * NUM_ELEMENTS 

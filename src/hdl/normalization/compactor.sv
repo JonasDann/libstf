@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "tuple_macros.svh"
+`include "libstf_macros.svh"
 
 module Compactor #(
     parameter type data_t,

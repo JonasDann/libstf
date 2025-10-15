@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-package libstf_common;
+package libstf;
 
 typedef logic[7:0]  data8_t;
 typedef logic[15:0] data16_t;
