@@ -22,7 +22,7 @@ ndata_i #(data_t, NUM_ELEMENTS) stages[PIPELINE_STAGES]();
 logic[COUNTER_WIDTH - 1:0] counter_stages[PIPELINE_STAGES];
 
 // Input assignments
-`NTUPLE_ASSIGN(in, stages[0])
+`DATA_ASSIGN(in, stages[0])
 assign counter_stages[0] = 0;
 
 // Generate pipeline stages
@@ -40,6 +40,6 @@ for (genvar i = 0; i < PIPELINE_STAGES - 1; i++) begin
 end
 
 // Output assignment
-`NTUPLE_ASSIGN(stages[PIPELINE_STAGES - 1], out)
+`DATA_ASSIGN(stages[PIPELINE_STAGES - 1], out)
 
 endmodule

@@ -36,7 +36,7 @@ generate if (ENABLE_COMPACTOR) begin
         .out(compactor_out)
     );
 end else begin
-    `NTUPLE_ASSIGN(in, compactor_out);
+    `DATA_ASSIGN(in, compactor_out);
 end endgenerate
 
 always_ff @(posedge clk) begin
