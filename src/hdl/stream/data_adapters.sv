@@ -6,8 +6,8 @@
 module NDataToAXI #(
     parameter type data_t,
     parameter NUM_ELEMENTS,
-    parameter TUPLE_WIDTH = $bits(data_t),
-    parameter AXI_WIDTH = TUPLE_WIDTH * NUM_ELEMENTS
+    parameter DATA_WIDTH = $bits(data_t),
+    parameter AXI_WIDTH = DATA_WIDTH * NUM_ELEMENTS
 ) (
     input logic clk,
     input logic rst_n,
@@ -17,13 +17,13 @@ module NDataToAXI #(
     AXI4S.m out // #(AXI_WIDTH)
 );
 
-localparam TUPLE_SIZE = TUPLE_WIDTH / 8;
+localparam DATA_SIZE = DATA_WIDTH / 8;
 
 assign in.ready = out.tready;
 
 for (genvar I = 0; I < NUM_ELEMENTS; I++) begin
-    for (genvar J = 0; J < TUPLE_SIZE; J++) begin
-        assign out.tkeep[I * TUPLE_SIZE + J] = in.keep[I];
+    for (genvar J = 0; J < DATA_SIZE; J++) begin
+        assign out.tkeep[I * DATA_SIZE + J] = in.keep[I];
     end
 end
 
@@ -39,9 +39,9 @@ endmodule
 module AXIToNData #(
     parameter type data_t,
     parameter NUM_ELEMENTS,
-    parameter TUPLE_WIDTH = $bits(data_t),
-    parameter NUM_AXI_TUPLES = NUM_ELEMENTS,
-    parameter AXI_WIDTH = TUPLE_WIDTH * NUM_AXI_TUPLES
+    parameter DATA_WIDTH = $bits(data_t),
+    parameter NUM_AXI_ELEMENTS = NUM_ELEMENTS,
+    parameter AXI_WIDTH = DATA_WIDTH * NUM_AXI_ELEMENTS
 ) (
     input logic clk,
     input logic rst_n,
@@ -51,14 +51,14 @@ module AXIToNData #(
     ndata_i.m out // #(data_t, NUM_ELEMENTS)
 );
 
-localparam AXI_TUPLE_WIDTH = AXI_WIDTH / NUM_AXI_TUPLES;
-localparam AXI_TUPLE_SIZE = AXI_TUPLE_WIDTH / 8;
+localparam AXI_ELEMENT_WIDTH = AXI_WIDTH / NUM_AXI_ELEMENTS;
+localparam AXI_ELEMENT_SIZE = AXI_ELEMENT_WIDTH / 8;
 
-`ASSERT_ELAB(NUM_ELEMENTS == NUM_AXI_TUPLES || NUM_ELEMENTS == NUM_AXI_TUPLES / 2)
+`ASSERT_ELAB(NUM_ELEMENTS == NUM_AXI_ELEMENTS || NUM_ELEMENTS == NUM_AXI_ELEMENTS / 2)
 
-AXI4S #(AXI_TUPLE_WIDTH * NUM_AXI_TUPLES) internal(.aclk(clk));
+AXI4S #(AXI_ELEMENT_WIDTH * NUM_AXI_ELEMENTS) internal(.aclk(clk));
 
-generate if (NUM_ELEMENTS == NUM_AXI_TUPLES) begin
+generate if (NUM_ELEMENTS == NUM_AXI_ELEMENTS) begin
     `AXIS_ASSIGN(in, internal);
 end else begin
     AXIWidthConverter #(
@@ -76,7 +76,7 @@ end endgenerate
 assign in.tready = out.ready;
 
 for (genvar I = 0; I < NUM_ELEMENTS; I++) begin
-    assign out.keep[I] = in.tkeep[I * AXI_TUPLE_SIZE];
+    assign out.keep[I] = in.tkeep[I * AXI_ELEMENT_SIZE];
 end
 
 assign out.data  = in.tdata;

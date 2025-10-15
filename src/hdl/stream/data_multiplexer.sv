@@ -8,8 +8,8 @@ module DataMultiplexer #(
 
     ready_valid_i.s select, // #(logic[$clog2(NUM_STREAMS) - 1:0])
 
-    ndata_i.s in[NUM_STREAMS], // #(data_t, NUM_TUPLES)
-    ndata_i.m out              // #(data_t, NUM_TUPLES)
+    ndata_i.s in[NUM_STREAMS], // #(data_t, NUM_ELEMENTS)
+    ndata_i.m out              // #(data_t, NUM_ELEMENTS)
 );
 
 assign select.ready = out.valid && out.last && out.ready;

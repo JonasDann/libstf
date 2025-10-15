@@ -16,8 +16,8 @@ module SerialDecoupler #(
     tagged_i.m out[NUM_ELEMENTS] // #(data_t, SERIAL_WIDTH)
 );
 
-localparam TUPLE_BITS = $clog2(NUM_ELEMENTS);
-localparam SERIAL_BEAT_BITS = SERIAL_WIDTH - TUPLE_BITS;
+localparam DATA_BITS = $clog2(NUM_ELEMENTS);
+localparam SERIAL_BEAT_BITS = SERIAL_WIDTH - DATA_BITS;
 
 typedef logic[SERIAL_BEAT_BITS - 1:0] beat_serial_t;
 
@@ -65,7 +65,7 @@ for (genvar I = 0; I < NUM_ELEMENTS; I++) begin
 
         if (in.ready) begin
             n_out[I].data  = in.data[I];
-            n_out[I].tag   = (serial_count << TUPLE_BITS) + I;
+            n_out[I].tag   = (serial_count << DATA_BITS) + I;
             n_out[I].keep  = in.keep[I];
             n_out[I].last  = in.last;
             n_out[I].valid = in.valid;

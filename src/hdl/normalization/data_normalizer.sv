@@ -28,7 +28,7 @@ logic emit;
 logic[NUM_ELEMENTS - 1:0] register_and_shifted_keep, register_or_shifted_keep;
 
 generate if (ENABLE_COMPACTOR) begin
-    TupleCompactor #(.data_t(data_t), .NUM_ELEMENTS(NUM_ELEMENTS), .REGISTER_LEVELS(COMPACTOR_REGISTER_LEVELS)) inst_compactor (
+    DataCompactor #(.data_t(data_t), .NUM_ELEMENTS(NUM_ELEMENTS), .REGISTER_LEVELS(COMPACTOR_REGISTER_LEVELS)) inst_compactor (
         .clk(clk),
         .rst_n(rst_n),
 

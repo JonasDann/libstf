@@ -30,7 +30,7 @@ module TaggedMultiplexer #(
     parameter ID,
     parameter NUM_INPUTS,
     parameter TAG_WIDTH,
-    parameter LAST_HANDLING = 1, // 0: Wait until we see a tuple with a last signal for every input stream and produce a dummy last element; 1: Directly forward the incoming tuples as they are
+    parameter LAST_HANDLING = 1, // 0: Wait until we see an element with a last signal for every input stream and produce a dummy last element; 1: Directly forward the incoming elements as they are
     parameter FILTER_KEEP = 1 // 0: Forward all elements even if the keep signal is 0, 1: Do not forward elements where keep is 0
 ) (
     input logic clk,
@@ -139,7 +139,7 @@ always_comb begin
     end 
 end
 
-TupleSkidBuffer #(
+DataSkidBuffer #(
     .data_t(data_t)
 ) inst_skid_buffer (
     .clk(clk),

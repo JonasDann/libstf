@@ -16,8 +16,8 @@ module Reorder #(
     data_i.m  out  // #(data_t)
 );
 
-localparam TUPLE_WIDTH = $bits(data_t);
-localparam RAM_WIDTH = TUPLE_WIDTH + 2;
+localparam DATA_WIDTH = $bits(data_t);
+localparam RAM_WIDTH = DATA_WIDTH + 2;
 
 logic[SERIAL_WIDTH - 1:0] ram_addr;
 logic[RAM_WIDTH - 1:0]    ram_data;
@@ -83,7 +83,7 @@ always_comb begin
     end
 
     if (!out.valid || out.ready) begin
-        n_out.data = ram_data[2+:TUPLE_WIDTH];
+        n_out.data = ram_data[2+:DATA_WIDTH];
         n_out.keep = ram_data[1];
         n_out.last = ram_data[0];
 
