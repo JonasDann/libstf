@@ -12,7 +12,7 @@ ResetResync inst_reset_resync ( \
 
 `define ASSERT_ELAB(COND) if (!(COND)) $error("Assertion failed.");
 
-`define DATA_ASSIGN(s, m).        \
+`define DATA_ASSIGN(s, m)         \
 	assign m.data      = s.data;  \
 	assign m.keep      = s.keep;  \
 	assign m.last      = s.last;  \
