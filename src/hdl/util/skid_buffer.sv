@@ -75,9 +75,9 @@ typedef struct packed {
     data_t data;
     logic  keep;
     logic  last;
-} data_t;
+} tmp_t;
 
-ready_valid_i #(data_t) skid_in(), skid_out();
+ready_valid_i #(tmp_t) skid_in(), skid_out();
 
 assign skid_in.data.data = in.data;
 assign skid_in.data.keep = in.keep;
@@ -86,7 +86,7 @@ assign skid_in.valid     = in.valid;
 assign in.ready          = skid_in.ready;
 
 SkidBuffer #(
-    .data_t(data_t)
+    .data_t(tmp_t)
 ) inst_skid_buffer (
     .clk(clk),
     .rst_n(rst_n),
@@ -118,9 +118,9 @@ typedef struct packed {
     data_t[NUM_ELEMENTS - 1:0] data;
     logic[NUM_ELEMENTS - 1:0]  keep;
     logic                      last;
-} data_t;
+} tmp_t;
 
-ready_valid_i #(data_t) skid_in(), skid_out();
+ready_valid_i #(tmp_t) skid_in(), skid_out();
 
 assign skid_in.data.data = in.data;
 assign skid_in.data.keep = in.keep;
@@ -129,7 +129,7 @@ assign skid_in.valid     = in.valid;
 assign in.ready          = skid_in.ready;
 
 SkidBuffer #(
-    .data_t(data_t)
+    .data_t(tmp_t)
 ) inst_skid_buffer (
     .clk(clk),
     .rst_n(rst_n),
