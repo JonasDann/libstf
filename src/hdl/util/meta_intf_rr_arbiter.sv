@@ -1,4 +1,8 @@
+`timescale 1ns / 1ps
+
 import lynxTypes::*;
+
+`include "libstf_macros.svh"
 
 // This module performs a round-robin based arbitration
 // for metaIntf types. The STYPE for the data field for each
@@ -26,12 +30,7 @@ module meta_intf_rr_arbiter #(
     metaIntf.m intf_out
 );
 
-logic reset_synced;
-ResetResync reset_resync (
-  .i_clk(clk),
-  .i_data(rst_n),
-  .o_data(reset_synced)
-);
+`RESET_RESYNC // Reset pipelining
 
 localparam integer N_BITS = $clog2(N_INTERFACES);
 
