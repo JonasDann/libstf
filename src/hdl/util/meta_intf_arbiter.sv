@@ -16,7 +16,7 @@ import lynxTypes::*;
 // starvation is encountered. Moreover, fair resource sharing is
 // ensured due to the round-robin implementation. Each interface
 // has to wait at most N_INTERFACES - 1 cycles between outputs. 
-module meta_intf_rr_arbiter #(
+module MetaIntfArbiter #(
     parameter N_INTERFACES = N_STRM_AXI,
     parameter type STYPE = logic[63:0]
 ) (

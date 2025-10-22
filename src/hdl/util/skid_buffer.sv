@@ -190,3 +190,45 @@ assign out.valid = data_out.valid;
 assign data_out.ready = out.ready;
 
 endmodule
+
+module AXISkidBuffer #(
+    parameter AXI4S_DATA_BITS = AXI_DATA_BITS
+) (
+    input logic clk,
+    input logic rst_n,
+
+    AXI4S.s in, // #(AXI4S_DATA_BITS) 
+    AXI4S.m out // #(AXI4S_DATA_BITS) 
+);
+
+typedef struct packed {
+    logic[AXI4S_DATA_BITS - 1:0] tdata;
+    logic                        tkeep;
+    logic                        tlast;
+} tmp_t;
+
+ready_valid_i #(tmp_t) skid_in(), skid_out();
+
+assign skid_in.data.tdata = in.tdata;
+assign skid_in.data.tkeep = in.tkeep;
+assign skid_in.data.tlast = in.tlast;
+assign skid_in.valid      = in.tvalid;
+assign in.tready          = skid_in.ready;
+
+SkidBuffer #(
+    .data_t(tmp_t)
+) inst_skid_buffer (
+    .clk(clk),
+    .rst_n(rst_n),
+    
+    .in(skid_in),
+    .out(skid_out)
+);
+
+assign out.tdata       = skid_out.data.tdata;
+assign out.tkeep       = skid_out.data.tkeep;
+assign out.tlast       = skid_out.data.tlast;
+assign out.tvalid      = skid_out.valid;
+assign skid_out.ready = out.tready;
+
+endmodule

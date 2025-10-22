@@ -23,8 +23,8 @@
 // See the usage of this module below.
 //
 module GlobalConfig #(
-    parameter integer N_CONFIGS,
-    parameter integer ADDR_SPACE_BOUNDS[N_CONFIGS + 1]
+    parameter integer NUM_CONFIGS,
+    parameter integer ADDR_SPACE_BOUNDS[NUM_CONFIGS + 1]
 ) (
     // Clock and reset
     input  wire      clk,
@@ -34,7 +34,7 @@ module GlobalConfig #(
     AXI4L.s          axi_ctrl,
 
     // Configurations
-    config_i.m       configs[N_CONFIGS]
+    config_i.m       configs[NUM_CONFIGS]
 );
 
 `RESET_RESYNC // Reset pipelining
@@ -47,7 +47,7 @@ module GlobalConfig #(
 // -> We shift the address by 3 bit to the right
 //    To address the whole register!
 localparam integer ADDR_LSB = $clog2(AXIL_DATA_BITS/8);
-localparam integer ADDR_MSB = $clog2(ADDR_SPACE_BOUNDS[N_CONFIGS]);
+localparam integer ADDR_MSB = $clog2(ADDR_SPACE_BOUNDS[NUM_CONFIGS]);
 localparam integer AXI2_ADDR_BITS = ADDR_LSB + ADDR_MSB; // TODO: Enable again
 
 logic [AXI_ADDR_BITS-1:0] axi_awaddr;
@@ -67,16 +67,17 @@ logic slv_reg_wren;
 logic aw_en;
 
 // Sub configurations
-config_i internal_configs[N_CONFIGS]();
+config_i pre_splitter_config();
+config_i internal_configs[NUM_CONFIGS]();
 
 for (genvar I = 0; I < N_CONFIGS; I++) begin
-  ShiftRegister #(.WIDTH(AXI_ADDR_BITS + AXIL_DATA_BITS + 1), .LEVELS(1)) inst_shift_reg (
-    .i_clk(clk),
-    .i_rst_n(reset_synced),
+    ShiftRegister #(.WIDTH(AXI_ADDR_BITS + AXIL_DATA_BITS + 1), .LEVELS(1)) inst_shift_reg (
+        .i_clk(clk),
+        .i_rst_n(reset_synced),
 
-    .i_data({internal_configs[I].addr, internal_configs[I].data, internal_configs[I].valid}),
-    .o_data({         configs[I].addr,          configs[I].data,          configs[I].valid})
-  );
+        .i_data({internal_configs[I].addr, internal_configs[I].data, internal_configs[I].valid}),
+        .o_data({         configs[I].addr,          configs[I].data,          configs[I].valid})
+    );
 end
 
 // -- READ/WRITE handling -----------------------------------------------------------------------
@@ -93,29 +94,36 @@ assign any_wstrb_valid = |axi_ctrl.wstrb;
 
 assign slv_reg_wren = axi_wready && axi_ctrl.wvalid && axi_awready && axi_ctrl.awvalid;
 
-for (genvar I = 0; I < N_CONFIGS; I++) begin
-  always_ff @(posedge clk) begin
+always_ff @(posedge clk) begin
     if (reset_synced == 1'b0) begin
-      internal_configs[I].valid <= '0;
+        pre_splitter_config.valid <= 1'b0;
     end else begin
-      if(slv_reg_wren &&
-         axi_awaddr[ADDR_LSB+:ADDR_MSB] >= ADDR_SPACE_BOUNDS[I] &&
-         axi_awaddr[ADDR_LSB+:ADDR_MSB] < ADDR_SPACE_BOUNDS[I + 1]) begin
-        internal_configs[I].addr <= axi_awaddr[ADDR_LSB+:ADDR_MSB] - ADDR_SPACE_BOUNDS[I];
-        for (int j = 0; j < N_WRT_STRB; j++) begin
-          if (axi_ctrl.wstrb[j]) begin
-            internal_configs[I].data[(j * 8)+:8] <= axi_ctrl.wdata[(j * 8)+:8];
-          end else begin
-            internal_configs[I].data[(j * 8)+:8] <= '0;
-          end
+        if (slv_reg_wren) begin
+            pre_splitter_config.addr <= axi_awaddr[ADDR_LSB+:ADDR_MSB];
+            for (int j = 0; j < N_WRT_STRB; j++) begin
+                if (axi_ctrl.wstrb[j]) begin
+                    pre_splitter_config.data[(j * 8)+:8] <= axi_ctrl.wdata[(j * 8)+:8];
+                end else begin
+                    pre_splitter_config.data[(j * 8)+:8] <= '0;
+            end
         end
-        internal_configs[I].valid <= any_wstrb_valid;
-      end else begin
-        internal_configs[I].valid <= '0;
-      end
+        pre_splitter_config.valid <= any_wstrb_valid;
+    end else begin
+        pre_splitter_config.valid <= '0;
     end
-  end
+    end
 end
+
+ConfigSplitter #(
+    .NUM_CONFIGS(NUM_CONFIGS),
+    .ADDR_SPACE_BOUNDS(ADDR_SPACE_BOUNDS)
+) inst_config_splitter (
+    .clk(clk),
+    .rst_n(rst_n),
+
+    .in(pre_splitter_config),
+    .out(internal_configs)
+);
 
 // Read process
 assign slv_reg_rden = axi_arready & axi_ctrl.arvalid & ~axi_rvalid;

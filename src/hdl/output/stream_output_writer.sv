@@ -28,7 +28,7 @@ import common::*;
 // E.g. the keep signal should be all f, except for data beats that contain a last signal.
 // In other words: Writing data that is not all f and not last will result in UNEXPECTED behavior.
 //
-module output_stream_writer #(
+module StreamOutputWriter #(
     parameter STRM = STRM_HOST,
     parameter AXI_STRM_ID = 0,
     parameter IS_LOCAL = 1,
@@ -37,27 +37,14 @@ module output_stream_writer #(
     input logic             clk,
     input logic             rst_n,
 
-    // The memory on the host to write the data to!
-    AXI4_MEM_ALLOC.s        input_mem,
+    metaIntf.m sq_wr,
+    metaIntf.s cq_wr,
+    metaIntf.m notify, // This module triggers an interrupt when all transfers are done
 
-    output vaddress_t       output_bytes_written,
+    memory_config_i.s memory_config,
 
-    // Send queue (we will transfer X amount of memory)
-    metaIntf.m              sq_wr,
-    // Completion queue (sending the memory was successful)
-    metaIntf.s              cq_wr,
-    // Notify interface -> Triggers interrupts on the CPU side
-    // once all transfers are finished
-    metaIntf.m              notify,
-
-    // The data to write
-    AXI4SR.s                input_data,
-
-    // The stream of type 'STRM' to write the data to!
-    AXI4SR.m                output_data,
-
-    // This signal is triggered once all data has been processed
-    output logic            all_processing_done
+    AXI4S.s input_data,
+    AXI4S.m output_data
 );
 
 `RESET_RESYNC // Reset pipelining
@@ -65,7 +52,7 @@ module output_stream_writer #(
 // De-Couple the input data
 // De coupling. Otherwise, the synthesis merges everything together and
 // the path becomes too long!
-AXI4SR input_data_de_coupled (.aclk(clk));
+AXI4S input_data_de_coupled(.aclk(clk));
 axi_ready_de_coupler de_coupler (
   .clk(clk),
   .rst_n(rst_n),
@@ -92,7 +79,7 @@ end
 if (N_STRM_AXI > 8) begin
     // This limitations is because we support only 3 bits for the stream identifier
     // in the interrupt/notify value.
-    $fatal(1, "Module output_stream_writer expected at most 8 AXI streams. Found %0d", N_STRM_AXI);
+    $fatal(1, "Module OutputStreamWriter expected at most 8 AXI streams. Found %0d", N_STRM_AXI);
 end
 endgenerate
 
@@ -100,25 +87,25 @@ endgenerate
 always_ff @(posedge clk) begin
     if (reset_synced == 1'b0) begin
         ;
-    end else if (input_mem.tready & input_mem.tvalid) begin
-        if (input_mem.size_bytes > MAXIMUM_HOST_ALLOCATION_SIZE_BYTES) begin
+    end else if (mem_config.buffer.ready & mem_config.buffer.valid) begin
+        if (mem_config.buffer.data.size > MAXIMUM_HOST_ALLOCATION_SIZE_BYTES) begin
             $fatal(1,
-                "Module output_stream_writer got memory allocation of %0d bytes, which is larger than the at most supported %0d bytes.", 
-                input_mem.size_bytes,
+                "Module OutputStreamWriter got memory allocation of %0d bytes, which is larger than the at most supported %0d bytes.", 
+                mem_config.buffer.data.size,
                 MAXIMUM_HOST_ALLOCATION_SIZE_BYTES
             );
         end
-        if (input_mem.size_bytes <= 0) begin      
+        if (mem_config.buffer.data.size <= 0) begin      
             $fatal(1,
-                "Module output_stream_writer got memory allocation of %0d bytes, allocations should be at least %0d in size", 
-                input_mem.size_bytes,
+                "Module OutputStreamWriter got memory allocation of %0d bytes, allocations should be at least %0d in size", 
+                mem_config.buffer.data.size,
                 TRANSFER_LENGTH_BYTES
             );
         end
-        if (input_mem.size_bytes % TRANSFER_LENGTH_BYTES != 0) begin
+        if (mem_config.buffer.data.size % TRANSFER_LENGTH_BYTES != 0) begin
             $fatal(1,
-                "Module output_stream_writer got memory allocation of %0d bytes, which is not a multiple of the transfer size of %0d bytes.", 
-                input_mem.size_bytes,
+                "Module OutputStreamWriter got memory allocation of %0d bytes, which is not a multiple of the transfer size of %0d bytes.", 
+                mem_config.buffer.data.size,
                 TRANSFER_LENGTH_BYTES
             );
         end
@@ -129,7 +116,7 @@ end
 // ----------------------------------------------------------------------------
 // Input logic
 // ----------------------------------------------------------------------------
-AXI4SR data_fifo_in   (.aclk(clk));
+AXI4S data_fifo_in(.aclk(clk));
 logic[TRANSFER_ADDRESS_LEN_BITS - 1:0] curr_len, curr_len_succ;
 logic curr_len_valid;
 logic curr_len_ready;
@@ -179,26 +166,27 @@ localparam integer TARGET_DATA_DEPTH = 2 * (TRANSFER_LENGTH_BYTES / AXI_DATA_BYT
 // This ensures we don't go below the minimum size supported by the FIFO
 localparam integer DATA_FIFO_DEPTH = TARGET_DATA_DEPTH >= 4 ? TARGET_DATA_DEPTH : 4;
 
-AXI4SR axis_data_fifo (.aclk(clk));
-output_stream_writer_data_fifo #(
-    .DEPTH(DATA_FIFO_DEPTH),
-    .SHIFT_STAGES(SHIFT_STAGES)
+AXI4S axis_data_fifo(.aclk(clk));
+FIFO_AXI #(
+    .DEPTH(DATA_FIFO_DEPTH)
 ) inst_data_fifo (
     .clk(clk),
     .rst_n(reset_synced),
+
     .input_data(data_fifo_in),
-    .output_data(axis_data_fifo)
+    .output_data(axis_data_fifo),
+    
+    .filling_level()
 );
 
 logic[TRANSFER_ADDRESS_LEN_BITS - 1:0] next_len;
 logic next_len_valid, next_len_ready;
-output_stream_writer_len_fifo #(
-    .TRANSFER_ADDRESS_LEN_BITS(TRANSFER_ADDRESS_LEN_BITS),
-    .DEPTH(16),
-    .SHIFT_STAGES(SHIFT_STAGES)
+FIFO #(
+    .WIDTH(TRANSFER_ADDRESS_LEN_BITS),
+    .DEPTH(16)
 ) inst_len_fifo (
-    .clk(clk),
-    .rst_n(reset_synced),
+    .i_clk(clk),
+    .i_rst_n(reset_synced),
 
     .i_data(curr_len_succ),
     .i_valid(curr_len_valid),
@@ -206,12 +194,14 @@ output_stream_writer_len_fifo #(
 
     .o_data(next_len),
     .o_valid(next_len_valid),
-    .o_ready(next_len_ready)
+    .o_ready(next_len_ready),
+
+    .o_filling_level()
 );
 
-// ----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // Output logic
-// ----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 typedef enum logic[2:0] {
     WAIT_VADDR = 0,
     REQUEST = 1,
@@ -223,22 +213,22 @@ typedef enum logic[2:0] {
 output_state_t output_state;
 
 // The vaddr we currently write to
-vaddress_t vaddr;
-// Note: The following two types are chosen to be vaddress_t on purpose
+vaddr_t vaddr;
+// Note: The following two types are chosen to be vaddr_t on purpose
 // to prevent potential overflow problems below.
 // The number of bytes allocated at vaddr
-vaddress_t max_bytes_for_allocation;
+vaddr_t allocation_size;
 // How many bytes we have already written to vaddr
-vaddress_t bytes_written_to_allocation;
+vaddr_t bytes_written_to_allocation;
 // Possible performance optimization: Become ready earlier such that
 // WAITING for the address takes at most 1 cycle.
 // However: Pay attention that you don't immediately read two addresses.
-assign input_mem.tready = output_state == WAIT_VADDR;
+assign mem_config.buffer.ready = output_state == WAIT_VADDR;
 
 // Tracking of the amount of data we have written in the current transfer
 logic[TRANSFER_ADDRESS_LEN_BITS - 1 : 0] bytes_written_to_transfer, bytes_written_to_transfer_succ;
 logic[$clog2(AXI_DATA_BYTES) : 0] bytes_to_write_to_transfer;
-vaddress_t num_requests, num_completed_transfers;
+vaddr_t num_requests, num_completed_transfers;
 logic current_transfer_completed;
 
 assign current_transfer_completed = bytes_written_to_transfer_succ == next_len;
@@ -260,7 +250,7 @@ logic is_completion;
 // the cq_wr. Therefore, we only validate the strm & dest. This should however never cause any problems!
 assign is_completion = cq_wr.valid && cq_wr.data.strm == STRM && cq_wr.data.dest == AXI_STRM_ID;
 
-// ----- Send queue requests -------------------------------------------------
+// -- Send queue requests --------------------------------------------------------------------------
 // Sends a request over transfers with at most TRANSFER_LENGTH_BYTES
 always_comb begin
     sq_wr.data.opcode = OPCODE;
@@ -285,9 +275,7 @@ always_comb begin
     sq_wr.valid = output_state == REQUEST & next_len_valid & next_len > 0;
 end
 
-// ----------------------------------------------------------------------------
-// Notify
-// ----------------------------------------------------------------------------
+// -- Interrupts -----------------------------------------------------------------------------------
 logic all_transfers_completed;
 assign all_transfers_completed = num_completed_transfers == num_requests;
 
@@ -296,27 +284,23 @@ always_comb begin
     notify.data.pid   = 6'd0;
     // The output value has 32 bits and consists of:
     // 1. The stream id that finished the transfer
-    notify.data.value[2 : 0] = AXI_STRM_ID;
+    notify.data.value[2:0] = AXI_STRM_ID;
     // 2. How much data as written to the vaddr (at most 2^28 bytes are supported)
-    notify.data.value[30 : 3] = bytes_written_to_allocation;
+    notify.data.value[30:3] = bytes_written_to_allocation;
     // 3. Whether this was the last transfer, i.e. all output data was written
     notify.data.value[31] = last_transfer;
-    notify.valid = (output_state == WAIT_COMPLETION & all_transfers_completed) ||
+    notify.valid = (output_state == WAIT_COMPLETION && all_transfers_completed) ||
                    (output_state == WAIT_NOTIFY);
 end
 
-// ----------------------------------------------------------------------------
-// State machine
-// ----------------------------------------------------------------------------
+// -- State machine --------------------------------------------------------------------------------
 always_ff @(posedge clk) begin
     if (reset_synced == 1'b0) begin
-        output_state            <= WAIT_VADDR;
-        output_bytes_written    <= 0;
-        all_processing_done     <= 0;
+        output_state <= WAIT_VADDR;
     end else begin
         case(output_state)
             WAIT_VADDR: begin
-                if (input_mem.tvalid) begin
+                if (mem_config.buffer.valid) begin
                     // Reset the current state
                     bytes_written_to_allocation <= 0;
                     num_requests                <= 0;
@@ -324,15 +308,16 @@ always_ff @(posedge clk) begin
                     last_transfer               <= 0;
 
                     // Get the memory address & size
-                    vaddr                    <= input_mem.vaddr;
-                    max_bytes_for_allocation <= input_mem.size_bytes;
-                    output_state             <= REQUEST;
+                    vaddr           <= mem_config.buffer.data.vaddr;
+                    allocation_size <= mem_config.buffer.data.size;
+                    output_state    <= REQUEST;
+
                     `ifndef SYNTHESIS
                     $display(
                         "FPGAOutputWriter [%0d]: Writing at most %0d bytes to vaddr %0d",
                         AXI_STRM_ID,
-                        input_mem.size_bytes,
-                        input_mem.vaddr
+                        mem_config.buffer.data.size,
+                        mem_config.buffer.data.vaddr
                     );
                     `endif
                 end end
@@ -345,11 +330,11 @@ always_ff @(posedge clk) begin
                     // In this case we don't need to send any request and can only trigger the interrupt
                     if (next_len > 0) begin
                         // This is a valid request with data
-                        vaddr        <= vaddr + next_len;
-                        output_state <= TRANSFER;
-                        num_requests <= num_requests + 1;
+                        vaddr                       <= vaddr + next_len;
+                        output_state                <= TRANSFER;
+                        num_requests                <= num_requests + 1;
                         bytes_written_to_allocation <= bytes_written_to_allocation + next_len;
-                        bytes_written_to_transfer <= 0;
+                        bytes_written_to_transfer   <= 0;
                     end else begin
                         // No data, no request, or transfer. Only interrupt.
                         output_state <= WAIT_NOTIFY;
@@ -362,18 +347,16 @@ always_ff @(posedge clk) begin
                 end end 
             TRANSFER: begin
                 if (axis_data_fifo.tvalid && output_data.tready) begin
-                    output_bytes_written <= output_bytes_written + bytes_to_write_to_transfer;
-
                     // If this was the last data beat of the transfer
                     if (current_transfer_completed) begin
-                        if (axis_data_fifo.tlast | max_bytes_for_allocation < bytes_written_to_allocation + TRANSFER_LENGTH_BYTES) begin
+                        if (axis_data_fifo.tlast | allocation_size < bytes_written_to_allocation + TRANSFER_LENGTH_BYTES) begin
                             // If
                             //  1. We have reached the end of the data, OR
                             //  2. The size of the current memory allocation does not fit an additional transfer
                             // We need to
                             //  1. Wait for completion
                             //  2. Trigger a interrupt (which will give us new memory, if more is needed)
-                            output_state <= WAIT_COMPLETION;
+                            output_state  <= WAIT_COMPLETION;
                             last_transfer <= axis_data_fifo.tlast;
                         end else begin
                             // Perform next transfer!
@@ -386,34 +369,15 @@ always_ff @(posedge clk) begin
             WAIT_COMPLETION: begin
                 if (all_transfers_completed) begin
                     if (notify.ready) begin
-                        if (last_transfer == 1'b1) begin
-                            output_state <= ALL_DONE;
-                        end else begin
-                            // Saves us one cycle should the notify be ready immediately! See code above.
-                            output_state <= WAIT_VADDR;
-                        end
+                        output_state <= WAIT_VADDR;
                     end else begin
                         output_state <= WAIT_NOTIFY;
                     end
                 end end
             WAIT_NOTIFY: begin
                 if (notify.ready) begin
-                    if (last_transfer == 1'b1) begin
-                        output_state <= ALL_DONE;
-                    end else begin
-                        // If we triggered the notification, we need
-                        // to wait to get the next chunk of memory from the host!
-                        output_state <= WAIT_VADDR;
-                    end
-                end
-            end
-            ALL_DONE: begin
-                // This state exists to make sure we wait for the interrupt
-                // before triggering the reset signal.
-                // Once we reach this state, this is nothing further to be done
-                // and the component just waits to be resetted
-                all_processing_done <= 1'b1;
-            end
+                    output_state <= WAIT_VADDR;
+                end end
             default:;
         endcase
 
@@ -423,7 +387,7 @@ always_ff @(posedge clk) begin
     end
 end
 
-// Assign output data!
+// -- Assign output data ---------------------------------------------------------------------------
 assign output_data.tdata     = axis_data_fifo.tdata;
 assign output_data.tkeep     = axis_data_fifo.tkeep;
 assign output_data.tlast     = current_transfer_completed;

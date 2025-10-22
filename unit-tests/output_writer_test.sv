@@ -84,7 +84,7 @@ generate
 endgenerate
 
 // -- Output writer --------------------------------------
-output_writer output_writer(
+OutputWriter inst_output_writer (
     .clk(aclk),
     .rst_n(rst_n),
     .sq_wr(sq_wr),

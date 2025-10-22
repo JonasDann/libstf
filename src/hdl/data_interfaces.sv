@@ -11,6 +11,10 @@ interface valid_i #(
     modport s (
         input data, valid
     );
+
+    task tie_off_s(); // Tie off unused slave signals
+        valid = 1'b0;
+    endtask
 endinterface
 
 interface ready_valid_i #(
@@ -29,6 +33,14 @@ interface ready_valid_i #(
         input  data, valid,
         output ready
     );
+
+    task tie_off_m(); // Tie off unused master signals
+        ready = 1'b0;
+    endtask
+
+    task tie_off_s(); // Tie off unused slave signals
+        valid = 1'b0;
+    endtask
 endinterface
 
 interface data_i #(

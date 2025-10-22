@@ -19,4 +19,18 @@ ResetResync inst_reset_resync ( \
 	assign m.valid     = s.valid; \
 	assign s.ready     = m.ready;
 
+`define READY_DUPLICATE(NUM, IN, OUT)              \
+ReadyValidDuplicator #(NUM) inst_ready_duplicate ( \
+    .clk(clk),                                     \
+    .rst_n(rst_n),                                 \
+    .in(IN),                                       \
+    .out(OUT)                                      \
+);
+
+`define READY_COMBINE(NUM, IN, OUT)            \
+ReadyValidCombiner #(NUM) inst_ready_combine ( \
+    .in(IN),                                   \
+    .out(OUT)                                  \
+);
+
 `endif
