@@ -49,9 +49,7 @@ endmodule
 /**
  * The ReadyValidCombiner combines the data of two inputs into one output.
  */
-module ReadyValidCombiner #(
-    parameter integer NUM_INTERFACES
-) (
+module ReadyValidCombiner (
     ready_valid_i.s left,  // #(left_t)
     ready_valid_i.s right, // #(right_t)
     ready_valid_i.m out    // #({left_t, right_t})

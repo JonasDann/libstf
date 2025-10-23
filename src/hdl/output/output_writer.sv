@@ -22,10 +22,10 @@ module OutputWriter (
     metaIntf.s cq_wr,
     metaIntf.m notify,
 
-    memory_config_i memory_config[N_STRM_AXI],
+    mem_config_i mem_config[N_STRM_AXI],
 
-    AXI4S.s data_in[N_STRM_AXI],
-    AXI4S.m data_out[N_STRM_AXI]
+    AXI4S.s  data_in[N_STRM_AXI],
+    AXI4SR.m data_out[N_STRM_AXI]
 );
 
 `RESET_RESYNC // Reset pipelining
@@ -74,12 +74,12 @@ for(genvar I = 0; I < N_STRM_AXI; I++) begin
     ) inst_skid_buffer (
         .clk(clk),
         .rst_n(reset_synced),
-        .input_stream(data_in[I]),
-        .output_stream(data_in_skid)
+        .in(data_in[I]),
+        .out(data_in_skid)
     );
 
     // Invoke the FPGA-initiated transfers for this stream!
-    StreamOutputWriter #(
+    StreamWriter #(
         .AXI_STRM_ID(I),
         .TRANSFER_LENGTH_BYTES(TRANSFER_SIZE_BYTES)
     ) inst_stream_writer (
@@ -90,10 +90,10 @@ for(genvar I = 0; I < N_STRM_AXI; I++) begin
         .cq_wr(cq_wr_strm[I]),
         .notify(notify_strm[I]),
 
-        .memory_config(memory_config[I])
+        .mem_config(mem_config[I]),
 
         .input_data(data_in_skid),
-        .output_data(data_out[I]),
+        .output_data(data_out[I])
     );
 end
 

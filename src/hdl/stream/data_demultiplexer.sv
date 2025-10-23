@@ -12,21 +12,22 @@ module DataDemultiplexer #(
     ndata_i.m out[NUM_STREAMS] // #(data_t, NUM_ELEMENTS)
 );
 
-assign select.ready = out.valid && out.last && out.ready;
+logic selected_ready;
+logic[NUM_STREAMS - 1:0] selected, out_ready;
 
-always_comb begin
-    for (int i = 0; i < NUM_STREAMS; i++) begin
-        if (select.valid && i == select.data) begin
-            in[i].ready = out.ready;
+assign selected_ready = |(selected & out_ready);
+assign select.ready = in.valid && in.last && selected_ready;
 
-            out.data  = in[i].data;
-            out.keep  = in[i].keep;
-            out.last  = in[i].last;
-            out.valid = in[i].valid;
-        end else begin
-            in[i].ready = 1'b0;
-        end
-    end
+assign in.ready = select.valid && selected_ready;
+
+for (genvar I = 0; I < NUM_STREAMS; I++) begin
+    assign selected[I] = I == select.data;
+    assign out_ready[I] = out[I].ready;
+
+    assign out[I].data = in.data;
+    assign out[I].keep = in.keep;
+    assign out[I].last = in.last;
+    assign out[I].valid = in.valid && select.valid && selected[I];
 end
 
 endmodule

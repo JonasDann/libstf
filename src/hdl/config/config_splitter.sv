@@ -16,15 +16,20 @@ module ConfigSplitter #(
     config_i.m out[NUM_CONFIGS]
 );
 
+logic[NUM_CONFIGS - 1:0] out_valid;
+
+for (genvar I = 0; I < NUM_CONFIGS; I++) begin
+    assign out[I].addr  = in.addr - ADDR_SPACE_BOUNDS[I];
+    assign out[I].data  = in.data;
+    assign out[I].valid = out_valid[I];
+end
+
 always_comb begin
     for (int i = 0; i < NUM_CONFIGS; i++) begin
-        out[i].addr = in.addr - ADDR_SPACE_BOUNDS[i];
-        out[i].data = in.data;
-
         if (in.addr >= ADDR_SPACE_BOUNDS[i] && in.addr < ADDR_SPACE_BOUNDS[i + 1]) begin
-            out.valid = in.valid;
+            out_valid[i] = in.valid;
         end else begin
-            out.valid = 1'b0;
+            out_valid[i] = 1'b0;
         end
     end
 end

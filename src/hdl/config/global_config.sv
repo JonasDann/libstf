@@ -70,7 +70,7 @@ logic aw_en;
 config_i pre_splitter_config();
 config_i internal_configs[NUM_CONFIGS]();
 
-for (genvar I = 0; I < N_CONFIGS; I++) begin
+for (genvar I = 0; I < NUM_CONFIGS; I++) begin
     ShiftRegister #(.WIDTH(AXI_ADDR_BITS + AXIL_DATA_BITS + 1), .LEVELS(1)) inst_shift_reg (
         .i_clk(clk),
         .i_rst_n(reset_synced),

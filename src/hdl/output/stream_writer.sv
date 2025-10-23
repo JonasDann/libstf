@@ -28,7 +28,7 @@ import common::*;
 // E.g. the keep signal should be all f, except for data beats that contain a last signal.
 // In other words: Writing data that is not all f and not last will result in UNEXPECTED behavior.
 //
-module StreamOutputWriter #(
+module StreamWriter #(
     parameter STRM = STRM_HOST,
     parameter AXI_STRM_ID = 0,
     parameter IS_LOCAL = 1,
@@ -41,23 +41,25 @@ module StreamOutputWriter #(
     metaIntf.s cq_wr,
     metaIntf.m notify, // This module triggers an interrupt when all transfers are done
 
-    memory_config_i.s memory_config,
+    mem_config_i mem_config,
 
-    AXI4S.s input_data,
-    AXI4S.m output_data
+    AXI4S.s  input_data,
+    AXI4SR.m output_data
 );
 
 `RESET_RESYNC // Reset pipelining
 
-// De-Couple the input data
-// De coupling. Otherwise, the synthesis merges everything together and
+// Otherwise, the synthesis merges everything together and
 // the path becomes too long!
 AXI4S input_data_de_coupled(.aclk(clk));
-axi_ready_de_coupler de_coupler (
-  .clk(clk),
-  .rst_n(rst_n),
-  .input_stream(input_data),
-  .output_stream(input_data_de_coupled)
+AXISkidBuffer #(
+    .AXI4S_DATA_BITS(512)
+) inst_skid_buffer (
+    .clk(clk),
+    .rst_n(reset_synced),
+
+    .in(input_data),
+    .out(input_data_de_coupled)
 );
 
 // ---- Assert parameters -------------------------------------------------------
@@ -167,14 +169,14 @@ localparam integer TARGET_DATA_DEPTH = 2 * (TRANSFER_LENGTH_BYTES / AXI_DATA_BYT
 localparam integer DATA_FIFO_DEPTH = TARGET_DATA_DEPTH >= 4 ? TARGET_DATA_DEPTH : 4;
 
 AXI4S axis_data_fifo(.aclk(clk));
-FIFO_AXI #(
+FIFOAXI #(
     .DEPTH(DATA_FIFO_DEPTH)
 ) inst_data_fifo (
     .clk(clk),
     .rst_n(reset_synced),
 
-    .input_data(data_fifo_in),
-    .output_data(axis_data_fifo),
+    .i_data(data_fifo_in),
+    .o_data(axis_data_fifo),
     
     .filling_level()
 );
@@ -213,13 +215,13 @@ typedef enum logic[2:0] {
 output_state_t output_state;
 
 // The vaddr we currently write to
-vaddr_t vaddr;
-// Note: The following two types are chosen to be vaddr_t on purpose
+vaddress_t vaddr;
+// Note: The following two types are chosen to be vaddress_t on purpose
 // to prevent potential overflow problems below.
 // The number of bytes allocated at vaddr
-vaddr_t allocation_size;
+vaddress_t allocation_size;
 // How many bytes we have already written to vaddr
-vaddr_t bytes_written_to_allocation;
+vaddress_t bytes_written_to_allocation;
 // Possible performance optimization: Become ready earlier such that
 // WAITING for the address takes at most 1 cycle.
 // However: Pay attention that you don't immediately read two addresses.
@@ -228,7 +230,7 @@ assign mem_config.buffer.ready = output_state == WAIT_VADDR;
 // Tracking of the amount of data we have written in the current transfer
 logic[TRANSFER_ADDRESS_LEN_BITS - 1 : 0] bytes_written_to_transfer, bytes_written_to_transfer_succ;
 logic[$clog2(AXI_DATA_BYTES) : 0] bytes_to_write_to_transfer;
-vaddr_t num_requests, num_completed_transfers;
+vaddress_t num_requests, num_completed_transfers;
 logic current_transfer_completed;
 
 assign current_transfer_completed = bytes_written_to_transfer_succ == next_len;
@@ -389,6 +391,7 @@ end
 
 // -- Assign output data ---------------------------------------------------------------------------
 assign output_data.tdata     = axis_data_fifo.tdata;
+assign output_data.tid       = '0;
 assign output_data.tkeep     = axis_data_fifo.tkeep;
 assign output_data.tlast     = current_transfer_completed;
 assign output_data.tvalid    = output_state == TRANSFER && axis_data_fifo.tvalid;

@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 
+import libstf::*;
+
 interface config_i;
     logic [AXI_ADDR_BITS - 1:0]  addr;
     logic [AXIL_DATA_BITS - 1:0] data;
@@ -24,18 +26,18 @@ endinterface
  * Interface that bundles all stream configuration information.
  */
 interface stream_config_i #(
-    parameter type SELECT_WIDTH
+    parameter NUM_SELECT
 );
-    typedef logic[SELECT_WIDTH - 1:0] select_t;
+    typedef logic[$clog2(NUM_SELECT) - 1:0] select_t;
 
-    ready_valid_i #(select_t) in_select;
-    ready_valid_i #(select_t) out_select;
-    ready_valid_i #(type_t)   type;
+    ready_valid_i #(select_t) in_select();
+    ready_valid_i #(select_t) out_select();
+    ready_valid_i #(type_t)   data_type();
 endinterface
 
 /**
  * Interface that bundles all memory configuration information.
  */
 interface mem_config_i;
-    ready_valid_i #(buffer_t) buffer;
+    ready_valid_i #(buffer_t) buffer();
 endinterface

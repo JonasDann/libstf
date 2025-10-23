@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 
+`include "axi_macros.svh"
+
 /**
  * Converts a ndata stream to an AXI stream.
  */
@@ -64,7 +66,7 @@ end else begin
     AXIWidthConverter #(
         .IN_WIDTH(AXI_WIDTH),
         .OUT_WIDTH(AXI_WIDTH / 2)
-    ) (
+    ) inst_width_converter (
         .clk(clk),
         .rst_n(rst_n),
 
