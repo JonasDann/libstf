@@ -202,9 +202,9 @@ module AXISkidBuffer #(
 );
 
 typedef struct packed {
-    logic[AXI4S_DATA_BITS - 1:0] tdata;
-    logic                        tkeep;
-    logic                        tlast;
+    logic[AXI4S_DATA_BITS - 1:0]  tdata;
+    logic[AXI4S_DATA_BITS / 8 - 1:0] tkeep;
+    logic                         tlast;
 } tmp_t;
 
 ready_valid_i #(tmp_t) skid_in(), skid_out();
