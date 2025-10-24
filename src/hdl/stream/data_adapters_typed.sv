@@ -156,12 +156,8 @@ assign in.tready = actual_type.valid && actual_ready;
 for (genvar I = 0; I < NUM_ELEMENTS; I++) begin
     assign data_32bit[I][0+:32] = is_upper == 1'b0 ? in.tdata[32 * I+:32] : in.tdata[32 * I + AXI_WIDTH / 2+:32];
 
-    for (genvar J = 0; J < 4; J++) begin
-        assign keep_32bit[I] = is_upper == 1'b0 ? in.tkeep[I * 4] : in.tkeep[I * 4 + AXI_WIDTH / 16];
-    end
-    for (genvar J = 0; J < 8; J++) begin
-        assign keep_64bit[I] = in.tkeep[I * 8];
-    end
+    assign keep_32bit[I] = is_upper == 1'b0 ? in.tkeep[I * 4] : in.tkeep[I * 4 + AXI_WIDTH / 16];
+    assign keep_64bit[I] = in.tkeep[I * 8];
 end
 
 always_ff @(posedge clk) begin

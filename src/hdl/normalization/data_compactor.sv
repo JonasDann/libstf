@@ -2,7 +2,7 @@
 
 `include "libstf_macros.svh"
 
-module Compactor #(
+module DataCompactor #(
     parameter type data_t,
     parameter NUM_ELEMENTS,
     parameter REGISTER_LEVELS = 8
@@ -27,7 +27,12 @@ assign counter_stages[0] = 0;
 
 // Generate pipeline stages
 for (genvar i = 0; i < PIPELINE_STAGES - 1; i++) begin
-    CompactorLevel #(.ID(i), .data_t(data_t), .NUM_ELEMENTS(NUM_ELEMENTS), .REGISTER(((i + 1) % REGISTER_GAP) == 0)) inst_compactor_level (
+    DataCompactorLevel #(
+        .ID(i), 
+        .data_t(data_t), 
+        .NUM_ELEMENTS(NUM_ELEMENTS), 
+        .REGISTER(((i + 1) % REGISTER_GAP) == 0)
+    ) inst_compactor_level (
         .clk(clk),
         .rst_n(rst_n),
 

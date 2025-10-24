@@ -21,7 +21,7 @@ typedef logic[SELECT_WIDTH - 1:0] select_t;
 
 for (genvar I = 0; I < NUM_STREAMS; I++) begin
     ready_valid_i #(select_t) select();
-    ready_valid_i #(select_t) data_type();
+    ready_valid_i #(type_t)   data_type();
     stream_config_i #(SELECT_WIDTH) result();
 
     `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 0, select_t, select)

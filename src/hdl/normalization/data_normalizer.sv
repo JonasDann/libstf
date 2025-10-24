@@ -65,26 +65,26 @@ BarrelShifter #(.data_t(data_t), .NUM_ELEMENTS(NUM_ELEMENTS), .REGISTER_LEVELS(B
 always_ff @(posedge clk) begin
     if (!rst_n) begin
         register.valid <= 0;
-        out.valid   <= 0;
+        out.valid      <= 0;
     end else begin
         if (out.ready) begin // TODO Add to condition: or !out.valid or new data does not overflow register (but then out needs to be handled differently too)
             for (int i = 0; i < NUM_ELEMENTS; i++) begin
                 if (register.valid && register.keep[i]) begin
-                    out.data[i * 8+:8] <= register.data[i * 8+:8];
+                    out.data[i] <= register.data[i];
                     if (emit) begin
-                        register.data[i * 8+:8] <= shifter_out.data[i * 8+:8];
+                        register.data[i] <= shifter_out.data[i];
                     end
                 end else begin
-                    out.data[i * 8+:8]   <= shifter_out.data[i * 8+:8];
-                    register.data[i * 8+:8] <= shifter_out.data[i * 8+:8];
+                    out.data[i]      <= shifter_out.data[i];
+                    register.data[i] <= shifter_out.data[i];
                 end
             end
 
             if (shifter_out.valid) begin // Only if valid data is coming out of the shifter, the output stage can be updated
                 if (register.valid && register.last) begin // There is some data left from the last stream that we have to flush
-                    out.keep    <= register.keep;
-                    out.last    <= 1;
-                    out.valid   <= 1;
+                    out.keep       <= register.keep;
+                    out.last       <= 1;
+                    out.valid      <= 1;
                     register.valid <= 0;
                 end else begin
                     if (emit) begin // The output register would be full
@@ -99,7 +99,7 @@ always_ff @(posedge clk) begin
                             end
                         end else begin
                             register.last <= 0;
-                            out.last   <= 0;
+                            out.last      <= 0;
                         end
 
                         register.keep  <= register_and_shifted_keep;

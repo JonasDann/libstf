@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module CompactorLevel #(
+module DataCompactorLevel #(
     parameter ID,
     parameter type data_t,
     parameter NUM_ELEMENTS,
@@ -17,7 +17,7 @@ module CompactorLevel #(
     output logic[COUNTER_WIDTH - 1:0] counter_out
 );
 
-data_t                     next_data[NUM_ELEMENTS];
+data_t[NUM_ELEMENTS - 1:0] next_data;
 logic[NUM_ELEMENTS - 1:0]  next_keep;
 logic[COUNTER_WIDTH - 1:0] next_counter;
 
