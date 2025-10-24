@@ -13,7 +13,7 @@ module DictionaryBank #(
     data_i.m out // #(serial_value_t)
 );
 
-typedef enum integer {WRITE, READ} state_t;
+typedef enum integer {WRITE, READ, FLUSH} state_t;
 
 state_t state;
 
@@ -47,7 +47,8 @@ always_ff @(posedge clk) begin
         write_addr <= '0;
         out.valid  <= 1'b0;
     end else begin
-        if (state == WRITE) begin
+        case (state)
+        WRITE: begin
             if (in_value.valid) begin
                 if (in_value.last) begin
                     state      <= READ;
@@ -56,18 +57,27 @@ always_ff @(posedge clk) begin
                     write_addr <= write_addr + 1;
                 end
             end
-        end else begin
+        end
+        READ: begin
             if (out.ready) begin
                 out.data.serial <= in_id.data.serial;
                 out.keep        <= in_id.keep;
                 out.last        <= in_id.last;
-                out.valid       <= in_id.valid;
 
-                if (out.valid && out.last) begin
-                    state <= WRITE;
+                // Filter dummy last elements added by the pre crossbar
+                out.valid <= in_id.valid && in_id.keep;
+
+                if (in_id.valid && in_id.last) begin
+                    state <= FLUSH;
                 end
             end
         end
+        FLUSH: begin
+            if (!out.valid || out.ready) begin
+                out.valid <= 1'b0;
+                state     <= WRITE;
+            end
+        end endcase
     end
 end
 

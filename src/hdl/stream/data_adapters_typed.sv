@@ -27,6 +27,7 @@ typedef logic[AXI_WIDTH / 8 - 1:0] keep_t;
 // -- Signals --------------------------------------------------------------------------------------
 logic is_upper, n_is_upper;
 logic is_32bit;
+logic both_valid;
 
 logic[AXI_WIDTH / 2 - 1:0]  data_32bit;
 logic[AXI_WIDTH / 16 - 1:0] keep_32bit;
@@ -39,6 +40,7 @@ logic  valid, n_valid;
 
 // -- Logic ----------------------------------------------------------------------------------------
 assign is_32bit = GET_TYPE_WIDTH(actual_type.data) == 32;
+assign both_valid = actual_type.valid && in.valid;
 
 assign actual_type.ready = in.valid && in.last && out.tready;
 
@@ -79,35 +81,35 @@ always_comb begin
     n_valid = 1'b0;
 
     if (out.tready) begin
-        if (actual_type.valid && in.valid) begin
+        if (both_valid) begin
             if (!in.last) begin
                 n_is_upper = ~is_upper;
             end else begin
                 n_is_upper = 1'b0;
             end
-
-            if (is_32bit) begin
-                if (is_upper == 1'b0) begin // lower
-                    n_data[AXI_WIDTH / 2 - 1:0]  = data_32bit;
-                    n_keep[AXI_WIDTH / 8 - 1:AXI_WIDTH / 16] = '0;
-                    n_keep[AXI_WIDTH / 16 - 1:0] = keep_32bit;
-
-                    if (in.last) begin
-                        n_valid = 1'b1;
-                    end
-                end else begin // upper
-                    n_data[AXI_WIDTH - 1:AXI_WIDTH / 2]      = data_32bit;
-                    n_keep[AXI_WIDTH / 8 - 1:AXI_WIDTH / 16] = keep_32bit;
-                    n_valid = 1'b1;
-                end
-            end else begin
-                n_data  = in.data;
-                n_keep  = keep_64bit;
-                n_valid = 1'b1;
-            end
-
-            n_last = in.last;
         end
+
+        if (is_32bit) begin
+            if (is_upper == 1'b0) begin // lower
+                n_data[AXI_WIDTH / 2 - 1:0]              = data_32bit;
+                n_keep[AXI_WIDTH / 8 - 1:AXI_WIDTH / 16] = '0;
+                n_keep[AXI_WIDTH / 16 - 1:0]             = keep_32bit;
+
+                if (in.last) begin
+                    n_valid = both_valid;
+                end
+            end else begin // upper
+                n_data[AXI_WIDTH - 1:AXI_WIDTH / 2]      = data_32bit;
+                n_keep[AXI_WIDTH / 8 - 1:AXI_WIDTH / 16] = keep_32bit;
+                n_valid = both_valid;
+            end
+        end else begin
+            n_data  = in.data;
+            n_keep  = keep_64bit;
+            n_valid = both_valid;
+        end
+
+        n_last = in.last;
     end else begin
         n_valid = valid;
     end

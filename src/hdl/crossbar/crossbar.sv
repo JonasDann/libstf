@@ -12,8 +12,8 @@ module Crossbar #(
     input logic clk,
     input logic rst_n,
 
-    tagged_i.s in[NUM_INPUTS], // #(data_t, TAG_WIDTH)
-    data_i.m  out[NUM_OUTPUTS] // #(data_t)
+    tagged_i.s in[NUM_INPUTS],  // #(data_t, TAG_WIDTH)
+    data_i.m   out[NUM_OUTPUTS] // #(data_t)
 );
 
 tagged_i #(data_t, TAG_WIDTH) skid_pipe[NUM_INPUTS][NUM_SKID_BUFFERS + 1]();

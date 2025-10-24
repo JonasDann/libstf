@@ -18,45 +18,54 @@ module AXIWidthConverter #(
     AXI4S.m out // #(OUT_WIDTH)
 );
 
-`ASSERT_ELAB((IN_WIDTH == 512 && OUT_WIDTH == 256) || (IN_WIDTH == 256 && OUT_WIDTH == 512))
+`ASSERT_ELAB(IN_WIDTH == 512 && OUT_WIDTH == 256)
 
-logic idx;
+logic is_upper;
 
 generate if (IN_WIDTH == 512 && OUT_WIDTH == 256) begin // Downsize
+    logic has_upper_data, beat_done;
+
+    assign has_upper_data = |in.tkeep[63:32];
+    assign beat_done = is_upper || !has_upper_data;
+
     always_ff @(posedge clk) begin
         if (rst_n == 1'b0) begin
-            idx <= 1'b0;
+            is_upper <= 1'b0;
         end else begin
-            if (out.tvalid && out.tready) begin
-                idx <= ~idx;
+            if (in.tvalid && out.tready) begin
+                if (has_upper_data) begin
+                    is_upper <= ~is_upper;
+                end else begin
+                    is_upper <= 1'b0;
+                end
             end
         end
     end
 
-    assign in.tready = out.tready && idx == 1'b1;
+    assign in.tready = out.tready && beat_done;
 
-    assign out.tdata  = in.tdata[256 * idx+:256];
-    assign out.tkeep  = in.tkeep[32 * idx+:32];
-    assign out.tlast  = in.tlast && idx == 1'b1;
+    assign out.tdata  = in.tdata[256 * is_upper+:256];
+    assign out.tkeep  = in.tkeep[32 * is_upper+:32];
+    assign out.tlast  = in.tlast && beat_done;
     assign out.tvalid = in.tvalid;
-end else if (IN_WIDTH == 256 && OUT_WIDTH == 512) begin // Upsize
+end else if (IN_WIDTH == 256 && OUT_WIDTH == 512) begin // Upsize // TODO: This code does not work
     logic[255:0] reg_data;
     logic[31:0]  reg_keep;
 
     always_ff @(posedge clk) begin
         if (rst_n == 1'b0) begin
-            idx <= 1'b0;
+            is_upper <= 1'b0;
         end else begin
             if (in.tvalid && in.tready) begin
                 if (!in.tlast) begin
-                    idx <= ~idx;
+                    is_upper <= ~is_upper;
                 end else begin
-                    idx <= 1'b0;
+                    is_upper <= 1'b0;
                 end
 
                 reg_data <= in.tdata;
 
-                if (idx == 1'b0) begin
+                if (is_upper == 1'b0) begin
                     reg_keep <= in.tkeep;
                 end else begin
                     reg_keep <= '0;
@@ -72,7 +81,7 @@ end else if (IN_WIDTH == 256 && OUT_WIDTH == 512) begin // Upsize
     assign out.tkeep[63:32]   = in.tkeep;
     assign out.tkeep[31:0]    = reg_keep;
     assign out.tlast          = in.tlast;
-    assign out.tvalid         = in.tvalid && (idx == 1'b1 || in.tlast);
+    assign out.tvalid         = in.tvalid && (is_upper || in.tlast);
 end endgenerate
 
 endmodule

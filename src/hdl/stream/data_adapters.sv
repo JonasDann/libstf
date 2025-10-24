@@ -42,9 +42,8 @@ endmodule
 module AXIToNData #(
     parameter type data_t,
     parameter NUM_ELEMENTS,
-    parameter DATA_WIDTH = $bits(data_t),
     parameter NUM_AXI_ELEMENTS = NUM_ELEMENTS,
-    parameter AXI_WIDTH = DATA_WIDTH * NUM_AXI_ELEMENTS
+    parameter AXI_WIDTH = $bits(data_t) * NUM_AXI_ELEMENTS
 ) (
     input logic clk,
     input logic rst_n,
@@ -59,7 +58,7 @@ localparam AXI_ELEMENT_SIZE = AXI_ELEMENT_WIDTH / 8;
 
 `ASSERT_ELAB(NUM_ELEMENTS == NUM_AXI_ELEMENTS || NUM_ELEMENTS == NUM_AXI_ELEMENTS / 2)
 
-AXI4S #(AXI_ELEMENT_WIDTH * NUM_AXI_ELEMENTS) internal(.aclk(clk));
+AXI4S #(AXI_ELEMENT_WIDTH * NUM_ELEMENTS) internal(.aclk(clk));
 
 generate if (NUM_ELEMENTS == NUM_AXI_ELEMENTS) begin
     `AXIS_ASSIGN(in, internal);
@@ -76,15 +75,15 @@ end else begin
     );
 end endgenerate
 
-assign in.tready = out.ready;
+assign internal.tready = out.ready;
 
 for (genvar I = 0; I < NUM_ELEMENTS; I++) begin
-    assign out.keep[I] = in.tkeep[I * AXI_ELEMENT_SIZE];
+    assign out.data[I] = internal.tdata[I * AXI_ELEMENT_WIDTH+:$bits(data_t)];
+    assign out.keep[I] = internal.tkeep[I * AXI_ELEMENT_SIZE];
 end
 
-assign out.data  = in.tdata;
-assign out.last  = in.tlast;
-assign out.valid = in.tvalid;
+assign out.last  = internal.tlast;
+assign out.valid = internal.tvalid;
 
 endmodule
 

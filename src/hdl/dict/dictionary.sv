@@ -26,7 +26,7 @@ module Dictionary #(
     input logic rst_n,
 
     ndata_i.s in_values, // #(value_t, NUM_ELEMENTS)
-    ndata_i.s in_ids,  // #(id_t, NUM_ELEMENTS)
+    ndata_i.s in_ids,    // #(id_t,    NUM_ELEMENTS)
 
     ndata_i.m out // #(value_t, NUM_ELEMENTS)
 );
@@ -41,7 +41,7 @@ localparam LOG_MAX_IN_TRANSIT = $clog2(MAX_IN_TRANSIT);
 localparam SERIAL_WIDTH = LOG_MAX_IN_TRANSIT + LOG_NUM_ELEMENTS;
 
 typedef logic[SERIAL_WIDTH - 1:0]            full_serial_t;
-typedef logic[LOG_MAX_IN_TRANSIT - 1:0]      serial_t;
+typedef logic[8 - 1:0]      serial_t;
 typedef logic[ID_BITS - LOG_NUM_BANKS - 1:0] bank_id_t;
 
 typedef struct packed {
@@ -76,7 +76,7 @@ data_i   #(serial_id_t)                pre_cross_out[NUM_BANKS]();
 data_i #(full_serial_value_t) bank_out[NUM_BANKS]();
 
 tagged_i #(serial_value_t, LOG_NUM_ELEMENTS) post_cross_in[NUM_BANKS]();
-data_i   #(serial_value_t)                 post_cross_out[NUM_ELEMENTS]();
+data_i   #(serial_value_t)                   post_cross_out[NUM_ELEMENTS]();
 
 tagged_i #(value_t, LOG_MAX_IN_TRANSIT) reorder_in[NUM_ELEMENTS]();
 data_i   #(value_t)                     reorder_out[NUM_ELEMENTS]();

@@ -21,42 +21,70 @@ module NDataWidthConverter #(
 
 `ASSERT_ELAB(IN_WIDTH == 8 && OUT_WIDTH == 16)
 
-logic idx;
+logic is_upper, n_is_upper;
 
-generate if (IN_WIDTH == 8 && OUT_WIDTH == 16) begin // Upsize
-    data_t[IN_WIDTH - 1:0] reg_data;
-    logic[IN_WIDTH - 1:0]  reg_keep;
+data_t[OUT_WIDTH - 1:0] data,  n_data;
+logic[OUT_WIDTH - 1:0]  keep,  n_keep;
+logic                   last,  n_last;
+logic                   valid, n_valid;
 
-    always_ff @(posedge clk) begin
-        if (rst_n == 1'b0) begin
-            idx <= 1'b0;
-        end else begin
-            if (in.valid && in.ready) begin
-                if (!in.last) begin
-                    idx <= ~idx;
-                end else begin
-                    idx <= 1'b0;
-                end
+assign in.ready = out.ready;
 
-                reg_data <= in.data;
+always_ff @(posedge clk) begin
+    if (rst_n == 1'b0) begin
+        is_upper <= 1'b0;
 
-                if (idx == 1'b0) begin
-                    reg_keep <= in.keep;
-                end else begin
-                    reg_keep <= '0;
-                end
+        valid <= 1'b0;
+    end else begin
+        is_upper <= n_is_upper;
+
+        data  <= n_data;
+        keep  <= n_keep;
+        last  <= n_last;
+        valid <= n_valid;
+    end
+end
+
+always_comb begin
+    n_is_upper = is_upper;
+
+    n_data  = data;
+    n_keep  = keep;
+    n_last  = last;
+    n_valid = 1'b0;
+
+    if (out.ready) begin
+        if (in.valid) begin
+            if (!in.last) begin
+                n_is_upper <= ~is_upper;
+            end else begin
+                n_is_upper <= 1'b0;
             end
         end
+
+        if (!is_upper) begin
+            n_data[7:0]  = in.data;
+            n_keep[15:8] = '0;
+            n_keep[7:0]  = in.keep;
+            
+            if (in.last) begin
+                n_valid = in.valid;
+            end
+        end else begin
+            n_data[15:8] = in.data;
+            n_keep[15:8] = in.keep;
+            n_valid      = in.valid;
+        end
+
+        n_last = in.last;
+    end else begin
+        n_valid = valid;
     end
+end
 
-    assign in.ready = out.ready || !out.valid;
-
-    assign out.data[15:8] = in.data;
-    assign out.data[7:0]  = reg_data;
-    assign out.keep[15:8] = in.keep;
-    assign out.keep[7:0]  = reg_keep;
-    assign out.last       = in.last;
-    assign out.valid      = in.valid && (idx == 1'b1 || in.last);
-end endgenerate
+assign out.data  = data;
+assign out.keep  = keep;
+assign out.last  = last;
+assign out.valid = valid;
 
 endmodule
