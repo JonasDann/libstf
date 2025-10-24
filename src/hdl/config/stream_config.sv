@@ -21,15 +21,14 @@ typedef logic[SELECT_WIDTH - 1:0] select_t;
 
 for (genvar I = 0; I < NUM_STREAMS; I++) begin
     ready_valid_i #(select_t) select();
+    ready_valid_i #(select_t) data_type();
     stream_config_i #(SELECT_WIDTH) result();
 
     `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 0, select_t, select)
-    `READY_DUPLICATE(2, select, {result.in_select, result.out_select})
-    `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 1, type_t, result.data_type)
+    `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 1, type_t, data_type)
 
-    `READY_VALID_ASSIGN(out[I].in_select,  result.in_select)
-    `READY_VALID_ASSIGN(out[I].out_select, result.out_select)
-    `READY_VALID_ASSIGN(out[I].data_type,  result.data_type)
+    `CONFIG_INTF_TO_SIGNALS(select,    out[I].select)
+    `CONFIG_INTF_TO_SIGNALS(data_type, out[I].data_type)
 end
 
 endmodule

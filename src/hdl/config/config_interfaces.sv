@@ -30,14 +30,33 @@ interface stream_config_i #(
 );
     typedef logic[$clog2(NUM_SELECT) - 1:0] select_t;
 
-    ready_valid_i #(select_t) in_select();
-    ready_valid_i #(select_t) out_select();
-    ready_valid_i #(type_t)   data_type();
+    `READY_VALID_SIGNALS(select_t, select)
+    `READY_VALID_SIGNALS(type_t,   data_type)
+
+    modport m (
+        output select_data, select_valid, data_type_data, data_type_valid,
+        input select_ready, data_type_ready
+    );
+
+    modport s (
+        output select_ready, data_type_ready,
+        input select_data, select_valid, data_type_data, data_type_valid
+    );
 endinterface
 
 /**
  * Interface that bundles all memory configuration information.
  */
 interface mem_config_i;
-    ready_valid_i #(buffer_t) buffer();
+    `READY_VALID_SIGNALS(buffer_t, buffer)
+
+    modport m (
+        output buffer_data, buffer_valid,
+        input buffer_ready
+    );
+
+    modport s (
+        output buffer_ready,
+        input buffer_data, buffer_valid
+    );
 endinterface

@@ -21,11 +21,11 @@ FIFO #(DEPTH, FIFO_WIDTH) inst_fifo (
 
     .i_data({i_data.tdata, i_data.tkeep, i_data.tlast}),
     .i_valid(i_data.tvalid),
-    .o_ready(i_data.tready),
+    .i_ready(i_data.tready),
 
     .o_data({o_data.tdata, o_data.tkeep, o_data.tlast}),
     .o_valid(o_data.tvalid),
-    .i_ready(o_data.tready),
+    .o_ready(o_data.tready),
 
     .o_filling_level(filling_level)
 );

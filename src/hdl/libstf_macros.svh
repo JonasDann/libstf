@@ -39,4 +39,9 @@ ReadyValidCombiner inst_ready_combine_`__LINE__ ( \
     .out(OUT)                                     \
 );
 
+`define READY_VALID_SIGNALS(TYPE, NAME) \
+TYPE  ``NAME``_data;                    \
+logic ``NAME``_valid;                   \
+logic ``NAME``_ready;
+
 `endif

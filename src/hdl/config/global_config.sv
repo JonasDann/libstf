@@ -27,8 +27,8 @@ module GlobalConfig #(
     parameter integer ADDR_SPACE_BOUNDS[NUM_CONFIGS + 1]
 ) (
     // Clock and reset
-    input  wire      clk,
-    input  wire[0:0] rst_n,
+    input logic clk,
+    input logic rst_n,
 
     // Control stream -> Used for configuration
     AXI4L.s          axi_ctrl,

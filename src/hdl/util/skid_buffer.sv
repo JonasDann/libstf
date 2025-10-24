@@ -1,22 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: ETH Zürich
-// Engineer: Philipp Engljähringer
-// 
-// Create Date: 01/2025 01:15:37 PM
-// Module Name: 
-// Project Name: PFC-HashJoin
-// Target Devices: xcvu47p-fsvh2892-2L-e
-// Tool Versions: 2024.2
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module SkidBuffer #(
     parameter type data_t

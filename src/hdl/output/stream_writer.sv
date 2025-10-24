@@ -49,6 +49,9 @@ module StreamWriter #(
 
 `RESET_RESYNC // Reset pipelining
 
+ready_valid_i #(buffer_t) buffer();
+`CONFIG_SIGNALS_TO_INTF(mem_config.buffer, buffer)
+
 // Otherwise, the synthesis merges everything together and
 // the path becomes too long!
 AXI4S input_data_de_coupled(.aclk(clk));
@@ -89,25 +92,25 @@ endgenerate
 always_ff @(posedge clk) begin
     if (reset_synced == 1'b0) begin
         ;
-    end else if (mem_config.buffer.ready & mem_config.buffer.valid) begin
-        if (mem_config.buffer.data.size > MAXIMUM_HOST_ALLOCATION_SIZE_BYTES) begin
+    end else if (buffer.ready & buffer.valid) begin
+        if (buffer.data.size > MAXIMUM_HOST_ALLOCATION_SIZE_BYTES) begin
             $fatal(1,
                 "Module OutputStreamWriter got memory allocation of %0d bytes, which is larger than the at most supported %0d bytes.", 
-                mem_config.buffer.data.size,
+                buffer.data.size,
                 MAXIMUM_HOST_ALLOCATION_SIZE_BYTES
             );
         end
-        if (mem_config.buffer.data.size <= 0) begin      
+        if (buffer.data.size <= 0) begin      
             $fatal(1,
                 "Module OutputStreamWriter got memory allocation of %0d bytes, allocations should be at least %0d in size", 
-                mem_config.buffer.data.size,
+                buffer.data.size,
                 TRANSFER_LENGTH_BYTES
             );
         end
-        if (mem_config.buffer.data.size % TRANSFER_LENGTH_BYTES != 0) begin
+        if (buffer.data.size % TRANSFER_LENGTH_BYTES != 0) begin
             $fatal(1,
                 "Module OutputStreamWriter got memory allocation of %0d bytes, which is not a multiple of the transfer size of %0d bytes.", 
-                mem_config.buffer.data.size,
+                buffer.data.size,
                 TRANSFER_LENGTH_BYTES
             );
         end
@@ -225,7 +228,7 @@ vaddress_t bytes_written_to_allocation;
 // Possible performance optimization: Become ready earlier such that
 // WAITING for the address takes at most 1 cycle.
 // However: Pay attention that you don't immediately read two addresses.
-assign mem_config.buffer.ready = output_state == WAIT_VADDR;
+assign buffer.ready = output_state == WAIT_VADDR;
 
 // Tracking of the amount of data we have written in the current transfer
 logic[TRANSFER_ADDRESS_LEN_BITS - 1 : 0] bytes_written_to_transfer, bytes_written_to_transfer_succ;
@@ -302,7 +305,7 @@ always_ff @(posedge clk) begin
     end else begin
         case(output_state)
             WAIT_VADDR: begin
-                if (mem_config.buffer.valid) begin
+                if (buffer.valid) begin
                     // Reset the current state
                     bytes_written_to_allocation <= 0;
                     num_requests                <= 0;
@@ -310,16 +313,16 @@ always_ff @(posedge clk) begin
                     last_transfer               <= 0;
 
                     // Get the memory address & size
-                    vaddr           <= mem_config.buffer.data.vaddr;
-                    allocation_size <= mem_config.buffer.data.size;
+                    vaddr           <= buffer.data.vaddr;
+                    allocation_size <= buffer.data.size;
                     output_state    <= REQUEST;
 
                     `ifndef SYNTHESIS
                     $display(
                         "FPGAOutputWriter [%0d]: Writing at most %0d bytes to vaddr %0d",
                         AXI_STRM_ID,
-                        mem_config.buffer.data.size,
-                        mem_config.buffer.data.vaddr
+                        buffer.data.size,
+                        buffer.data.vaddr
                     );
                     `endif
                 end end

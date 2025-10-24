@@ -3,13 +3,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
--- This component is provided by Jonas Dann. TY!
--- There have only been slight adjustments
-
 entity FIFO is
     generic (
-        DEPTH:               natural; --a power of two except 1
-        WIDTH:               natural
+        DEPTH: natural; --a power of two except 1
+        WIDTH: natural
     );
     port (
         i_clk:   in std_logic;

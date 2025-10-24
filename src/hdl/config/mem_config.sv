@@ -20,14 +20,15 @@ localparam NUM_REGISTERS = 2;
 for (genvar I = 0; I < NUM_STREAMS; I++) begin
     ready_valid_i #(vaddress_t)   vaddr();
     ready_valid_i #(alloc_size_t) size();
+    ready_valid_i #(buffer_t)     buffer();
 
     mem_config_i result();
 
-    `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 0, vaddress_t, vaddr)
+    `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 0, vaddress_t,   vaddr)
     `CONFIG_WRITE_READY_REGISTER(I * NUM_REGISTERS + 1, alloc_size_t, size)
-    `READY_COMBINE(vaddr, size, result.buffer)
+    `READY_COMBINE(vaddr, size, buffer)
 
-    `READY_VALID_ASSIGN(out[I].buffer, result.buffer)
+    `CONFIG_INTF_TO_SIGNALS(buffer, out[I].buffer)
 end
 
 endmodule
