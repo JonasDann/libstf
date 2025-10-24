@@ -14,12 +14,15 @@ module DataMultiplexer #(
     ndata_i.m out              // #(data_t, NUM_ELEMENTS)
 );
 
+typedef data_t[NUM_ELEMENTS - 1:0] ndata_t;
+typedef logic[NUM_ELEMENTS - 1:0]  nkeep_t;
+
 logic[NUM_STREAMS - 1:0] selected;
 
-data_t[NUM_ELEMENTS - 1:0][NUM_STREAMS - 1:0] in_data;
-logic[NUM_ELEMENTS - 1:0][NUM_STREAMS - 1:0]  in_keep;
-logic[NUM_STREAMS - 1:0] in_last;
-logic[NUM_STREAMS - 1:0] in_valid;
+ndata_t[NUM_STREAMS - 1:0] in_data;
+nkeep_t[NUM_STREAMS - 1:0] in_keep;
+logic[NUM_STREAMS - 1:0]   in_last;
+logic[NUM_STREAMS - 1:0]   in_valid;
 
 assign select.ready = out.valid && out.last && out.ready;
 
@@ -35,13 +38,17 @@ for (genvar I = 0; I < NUM_STREAMS; I++) begin
 end
 
 always_comb begin
-    for (int i = 0; i < NUM_STREAMS; i++) begin
-        if (select.valid && selected[i]) begin
-            out.data  = in_data[i];
-            out.keep  = in_keep[i];
-            out.last  = in_last[i];
-            out.valid = in_valid[i];
+    if (select.valid) begin
+        for (int i = 0; i < NUM_STREAMS; i++) begin
+            if (selected[i]) begin
+                out.data  = in_data[i];
+                out.keep  = in_keep[i];
+                out.last  = in_last[i];
+                out.valid = in_valid[i];
+            end
         end
+    end else begin
+        out.valid = 1'b0;
     end
 end
 

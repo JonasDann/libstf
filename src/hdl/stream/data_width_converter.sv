@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 
+`include "libstf_macros.svh"
+
 /**
  * Converts an ndata_i stream to a different width.
  *

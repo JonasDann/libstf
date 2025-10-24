@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 
+`include "libstf_macros.svh"
+
 /**
  * Converts an AXI stream to a different width.
  *
